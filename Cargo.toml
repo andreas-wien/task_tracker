@@ -3,4 +3,12 @@ name = "task_tracker"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "task_tracker_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "task_tracker"
+path = "src/main.rs"
+
 [dependencies]
