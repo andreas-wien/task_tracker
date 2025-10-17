@@ -146,6 +146,7 @@ impl TaskTracker {
 
     fn add_task(&mut self, description: &str) {
         self.tasks.insert(self.next_id, Task::new(description));
+        println!("Task added successfully (ID: {})", self.next_id);
         self.save_tasks();
     }
 
