@@ -1,6 +1,6 @@
 use std::{ fmt::Display, str::FromStr };
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum TaskStatus {
     ToDo,
     InProgress,
