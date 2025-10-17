@@ -43,6 +43,6 @@ Clone the repo and build:
 git clone https://github.com/andreas-wien/task_tracker.git
 cd task_tracker
 cargo build --release
-
+```
 
 [https://roadmap.sh/projects/task-tracker](https://roadmap.sh/projects/task-tracker)
