@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 use crate::date_time::DateTime;
 use crate::task::{ Task, TaskStatus };
-use crate::cli::CLI;
+use crate::cli::{ CLIInvalidArgumentsError, CLI };
 
 enum TaskTrackerMode {
     Add,
@@ -25,6 +25,28 @@ enum TaskTrackerMode {
 pub struct TaskTrackerModeParseError(String);
 pub struct TaskTrackerInvalidTaskIdError(String);
 
+pub enum TaskTrackerCreationError {
+    TaskTrackerModeParseError(TaskTrackerModeParseError),
+    CLIInvalidArgumentsError(CLIInvalidArgumentsError),
+}
+
+impl From<TaskTrackerModeParseError> for TaskTrackerCreationError {
+    fn from(value: TaskTrackerModeParseError) -> Self {
+        TaskTrackerCreationError::TaskTrackerModeParseError(value)
+    }
+}
+impl From<CLIInvalidArgumentsError> for TaskTrackerCreationError {
+    fn from(value: CLIInvalidArgumentsError) -> Self {
+        TaskTrackerCreationError::CLIInvalidArgumentsError(value)
+    }
+}
+
+impl Display for TaskTrackerCreationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TaskCreationError: ")
+    }
+}
+
 impl Display for TaskTrackerModeParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "No such mode: {}", self.0)
@@ -36,7 +58,6 @@ impl Display for TaskTrackerInvalidTaskIdError {
         write!(f, "No such ID: {}", self.0)
     }
 }
-
 
 impl Default for TaskTrackerMode {
     fn default() -> Self {
@@ -69,8 +90,8 @@ pub struct TaskTracker {
 }
 
 impl TaskTracker {
-    pub fn new() -> Result<Self, TaskTrackerModeParseError> {
-        let cli = CLI::new();
+    pub fn new() -> Result<Self, TaskTrackerCreationError> {
+        let cli = CLI::new()?;
         let tasks = TaskTracker::load_tasks();
         let mode = cli.arguments()[1].parse()?;
 
