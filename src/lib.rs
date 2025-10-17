@@ -23,12 +23,20 @@ enum TaskTrackerMode {
 }
 
 pub struct TaskTrackerModeParseError(String);
+pub struct TaskTrackerInvalidTaskIdError(String);
 
 impl Display for TaskTrackerModeParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "No such mode: {}", self.0)
     }
 }
+
+impl Display for TaskTrackerInvalidTaskIdError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "No such ID: {}", self.0)
+    }
+}
+
 
 impl Default for TaskTrackerMode {
     fn default() -> Self {
@@ -46,7 +54,7 @@ impl FromStr for TaskTrackerMode {
             "update" => Ok(TaskTrackerMode::Update),
             "delete" => Ok(TaskTrackerMode::Delete),
             "list" => Ok(TaskTrackerMode::List),
-            "mark-in-progess" => Ok(TaskTrackerMode::MarkInProgress),
+            "mark-in-progress" => Ok(TaskTrackerMode::MarkInProgress),
             "mark-done" => Ok(TaskTrackerMode::MarkDone),
             _ => Err(TaskTrackerModeParseError(s)),
         }
@@ -65,6 +73,7 @@ impl TaskTracker {
         let cli = CLI::new();
         let tasks = TaskTracker::load_tasks();
         let mode = cli.arguments()[1].parse()?;
+
         Ok(TaskTracker {
             cli,
             tasks,
@@ -77,7 +86,8 @@ impl TaskTracker {
         &self.cli
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self) -> Result<(), TaskTrackerInvalidTaskIdError> {
+        self.set_next_id();
         match self.mode {
             TaskTrackerMode::Add => {
                 let description = self.cli().arguments()[2].clone();
@@ -86,14 +96,13 @@ impl TaskTracker {
             TaskTrackerMode::Update => {
                 let id = self.cli().arguments()[2].parse().unwrap_or_default();
                 let description = self.cli().arguments()[3].clone();
-                self.update_task(id, &description);
+                self.update_task(id, &description)?;
             }
             TaskTrackerMode::Delete => {
                 let id = self.cli().arguments()[2].parse().unwrap_or_default();
                 self.delete_task(id);
             }
             TaskTrackerMode::List => {
-                println!("{}", self.cli().arguments().len());
                 let task_status = if self.cli().arguments().len() < 3 {
                     None
                 } else {
@@ -103,13 +112,15 @@ impl TaskTracker {
             }
             TaskTrackerMode::MarkInProgress => {
                 let id = self.cli().arguments()[2].parse().unwrap_or_default();
-                self.mark_task_in_progress(id);
+                self.mark_task_in_progress(id)?;
             }
             TaskTrackerMode::MarkDone => {
                 let id = self.cli().arguments()[2].parse().unwrap_or_default();
-                self.mark_task_done(id);
+                self.mark_task_done(id)?;
             }
         }
+
+        Ok(())
     }
 
     fn add_task(&mut self, description: &str) {
@@ -117,13 +128,21 @@ impl TaskTracker {
         self.save_tasks();
     }
 
-    fn update_task(&mut self, id: u32, description: &str) {
+    fn update_task(
+        &mut self,
+        id: u32,
+        description: &str
+    ) -> Result<(), TaskTrackerInvalidTaskIdError> {
         let task = self.tasks.get_mut(&id);
         match task {
             Some(task) => task.set_description(description),
-            None => todo!("Error: No task with such an ID"),
+            None => {
+                return Err(TaskTrackerInvalidTaskIdError(format!("No task with ID {} found", id)));
+            }
         }
         self.save_tasks();
+
+        Ok(())
     }
 
     fn delete_task(&mut self, id: u32) {
@@ -131,22 +150,30 @@ impl TaskTracker {
         self.save_tasks();
     }
 
-    fn mark_task_in_progress(&mut self, id: u32) {
+    fn mark_task_in_progress(&mut self, id: u32) -> Result<(), TaskTrackerInvalidTaskIdError> {
         let task = self.tasks.get_mut(&id);
         match task {
             Some(task) => task.set_status(TaskStatus::InProgress),
-            None => todo!("Error: No task with such an ID"),
+            None => {
+                return Err(TaskTrackerInvalidTaskIdError(format!("No task with ID {} found", id)));
+            }
         }
         self.save_tasks();
+
+        Ok(())
     }
 
-    fn mark_task_done(&mut self, id: u32) {
+    fn mark_task_done(&mut self, id: u32) -> Result<(), TaskTrackerInvalidTaskIdError> {
         let task = self.tasks.get_mut(&id);
         match task {
             Some(task) => task.set_status(TaskStatus::Done),
-            None => todo!("Error: No task with such an ID"),
+            None => {
+                return Err(TaskTrackerInvalidTaskIdError(format!("No task with ID {} found", id)));
+            }
         }
         self.save_tasks();
+
+        Ok(())
     }
 
     fn list_tasks(&self, task_status: Option<TaskStatus>) {
@@ -167,6 +194,7 @@ impl TaskTracker {
             }
         }
     }
+
     fn save_tasks(&self) {
         let mut json = String::new();
         json.push_str(r#"["#);
@@ -190,8 +218,7 @@ impl TaskTracker {
             );
             json.push_str(&task_json);
             if c != self.tasks.len() {
-                json.push_str(r#",
-                "#);
+                json.push_str(r#","#);
             }
 
             c += 1;
@@ -286,5 +313,16 @@ impl TaskTracker {
         }
 
         tasks
+    }
+
+    fn set_next_id(&mut self) {
+        let mut next_id: u32 = 0;
+        let used_ids: Vec<&u32> = self.tasks.keys().collect();
+
+        while used_ids.contains(&&next_id) {
+            next_id += 1;
+        }
+
+        self.next_id = next_id;
     }
 }

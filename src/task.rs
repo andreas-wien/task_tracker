@@ -52,10 +52,16 @@ impl Task {
 
     pub fn set_status(&mut self, new_status: TaskStatus) {
         self.status = new_status;
+        self.set_updated_at(DateTime::now());
     }
 
     pub fn set_description(&mut self, new_description: &str) {
         self.description = new_description.to_owned();
+        self.set_updated_at(DateTime::now());
+    }
+
+    fn set_updated_at(&mut self, updated_at: DateTime) {
+        self.updated_at = updated_at;
     }
 
     pub fn print(&self) {

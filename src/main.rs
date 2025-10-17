@@ -9,5 +9,11 @@ fn main() {
         }
     };
 
-    task_tracker.start();
+    match task_tracker.start() {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!("Error: {e}");
+            return;
+        }
+    };
 }

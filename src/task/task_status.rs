@@ -13,7 +13,7 @@ impl Display for TaskStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TaskStatus::ToDo => write!(f, "todo"),
-            TaskStatus::InProgress => write!(f, "in-progess"),
+            TaskStatus::InProgress => write!(f, "in-progress"),
             TaskStatus::Done => write!(f, "done"),
         }
     }
